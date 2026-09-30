@@ -28,7 +28,7 @@
 <p align="center">
   <a href="#-quick-setup">🚀 Quick Setup</a> ·
   <a href="#-hardware">🦾 Hardware</a> ·
-  <a href="#-startup-flow">🎮 VR Teleoperation</a> ·
+  <a href="#-startup-flow">🎮 Simulation / Teleoperation</a> ·
   <a href="#-record-data">📷 Record Data</a> ·
   <a href="#-train-act">🧠 Train ACT</a> ·
   <a href="#-train-smolvla">✨ Train VLA</a>
@@ -50,9 +50,9 @@
     <tr><td align="center">🦾</td><td align="center">Dual-arm manipulation</td><td align="center">Damiao dual arms and grippers for teleoperation, recording, and policy rollout</td></tr>
     <tr><td align="center">⬆️</td><td align="center">Lift platform</td><td align="center">Automatic homing on startup, with the upper limit defined as <code>height.pos = 0</code></td></tr>
     <tr><td align="center">⭕</td><td align="center">Omnidirectional base</td><td align="center">Four-wheel O-type omnidirectional chassis with <code>x/y/theta</code> velocity control</td></tr>
-    <tr><td align="center">🎮</td><td align="center">VR teleoperation</td><td align="center">Telegrip captures VR controller data; MuJoCo + Pinocchio/CasADi compute IK</td></tr>
+    <tr><td align="center">🎮</td><td align="center">Keyboard / VR control</td><td align="center">Control the complete MuJoCo robot by keyboard or VR; Telegrip + Pinocchio/CasADi provide the VR IK pipeline</td></tr>
     <tr><td align="center">📷</td><td align="center">Three-camera data</td><td align="center"><code>front</code>, <code>left_wrist</code>, and <code>right_wrist</code> visual inputs</td></tr>
-    <tr><td align="center">🧠</td><td align="center">Imitation learning / VLA</td><td align="center">Supports LeRobotDataset, ACT, SmolVLA, and real-robot rollout</td></tr>
+    <tr><td align="center">🧠</td><td align="center">Imitation learning / VLA</td><td align="center">Record keyboard/VR simulation data, visualize LeRobotDataset episodes, train ACT/VLA policies, and run them in simulation or on hardware</td></tr>
   </tbody>
 </table>
 
@@ -127,14 +127,15 @@ We will continue improving HEI ReBot Lift across hardware materials, software in
 | --- | --- | --- | --- |
 | Robot body | ✅ First version completed | Dual arms, lift platform, and four-wheel O-type omnidirectional base are integrated and tested as a complete system | [Hardware](hardware/README.md) |
 | Complete robot URDF | ✅ Completed | Full robot model includes the chassis, wheels, lift, dual arms, parallel grippers, and TCP frames for simulation and real-robot IK | [URDF Model](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik/mujoco_ik/model/HEI_robot_urdf/) |
-| MuJoCo simulation testing | ✅ Completed | VR control of both arms, grippers, lift, and chassis has been tested; includes wheel animations, workspace projection, and stable-grasp pick-and-place demonstrations | [Simulation Guide](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik/README.md) |
+| MuJoCo simulation testing | ✅ Completed | Keyboard and VR control of both arms, grippers, lift, and chassis have been tested; includes wheel animations, workspace projection, and stable-grasp pick-and-place demonstrations | [Simulation Guide](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik/README.md) |
+| Simulation data and policy loop | ✅ Verified | Keyboard or VR demonstrations publish synchronized 18-D states/actions and three camera views for LeRobotDataset recording, visualization, ACT training, and MuJoCo policy rollout | [Dataset, Training & Inference Guide](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik/mujoco_ik/SIM_DATASET_WORKFLOW.md) |
 | Damiao motor driver | ✅ First version completed | `damiao_u2can` is implemented for dual arms, grippers, chassis, and lift motor control | [Damiao U2CAN](software/lerobot-hei-rebot-lift/src/lerobot/motors/damiao_u2can/) |
 | Lift platform | ✅ First version completed | Supports upper-limit homing on startup and `height.pos` position-target control | [Robot Driver](software/lerobot-hei-rebot-lift/src/lerobot/robots/hei_rebot_lift/README.md) · [Independent Lift Control](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/README.md#independent-lift-test) |
 | Omnidirectional base | ✅ First version completed | Supports `x.vel`, `y.vel`, and `theta.vel` commands with basic acceleration smoothing | [Robot Driver](software/lerobot-hei-rebot-lift/src/lerobot/robots/hei_rebot_lift/README.md) · [Independent Chassis Control](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/README.md#independent-chassis-test) |
 | Three-camera vision | ✅ First version completed | Supports `front`, `left_wrist`, and `right_wrist` OpenCV cameras with MJPG by default | [Robot Driver](software/lerobot-hei-rebot-lift/src/lerobot/robots/hei_rebot_lift/README.md) |
 | VR + MuJoCo IK | ✅ First version completed | Telegrip + MuJoCo + Pinocchio/CasADi is connected to the real-robot control pipeline | [VR MuJoCo IK](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik/README.md) |
 | LeRobot integration | ✅ First version completed | `hei_rebot_lift` robot/client/host is implemented with teleoperate, record, replay, evaluate, and rollout scripts | [Examples](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/README.md) |
-| Data collection | ✅ First version completed | Supports LeRobotDataset recording, resume recording, visualization, and bad-episode cleanup | [Record Guide](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/README.md) |
+| Real-robot data collection | ✅ First version completed | Supports LeRobotDataset recording, resume recording, visualization, and bad-episode cleanup | [Record Guide](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/README.md) |
 | ACT training and rollout | ✅ Verified | Supports ACT training and real-robot rollout | [Examples](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/README.md) |
 | SmolVLA / VLA | ✅ Initial support | Supports SmolVLA training and real-robot rollout entry points | [Examples](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/README.md) |
 | Open hardware materials | ✅ Completed | Overall BOM, full robot STEP assembly, printed-part STL files, metal parts list, and STEP/DWG manufacturing files are available | [Hardware](hardware/README.md) |
@@ -506,8 +507,8 @@ do not replace the computer address used by the headset.**
 | `192.168.31.127` | Robot Jetson running the host | Client: `--remote-ip 192.168.31.127`; VR camera endpoint: `tcp://192.168.31.127:6556` |
 | `localhost` / `127.0.0.1` | The machine running that program, not the remote robot | Local VR, action, and feedback connections when Telegrip, MuJoCo IK, and the client share one computer |
 
-Practice in pure simulation below before real control. Simulation only needs
-the computer and headset to communicate; for real control, also connect the
+Practice in pure simulation below before real control. Keyboard simulation only
+needs the computer; VR simulation needs the computer and headset to communicate. For real control, also connect the
 robot to the same mutually reachable LAN. **Run each block in a new terminal at
 the repository root on the specified machine.** Keep long-running processes open.
 
@@ -522,7 +523,21 @@ Install `hei-rebot-vr` first. **Do not start the robot host, `teleoperate.py`,
 Pure simulation requires no motors, device bindings, or robot feedback and does
 not publish real actions on `6558`.
 
-#### 1.1 Computer Practice Terminal A: Start Telegrip
+#### 1.1 Practice by Keyboard Without a Headset
+
+```bash
+cd software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik
+./run_hei_robot_keyboard_sim.sh
+```
+
+Press `1/2/3/4` to select chassis, lift, left arm, or right arm. Chassis uses
+`W/S`, `A/D`, and `Q/E`; lift uses `I/K`; arm TCP translation uses `W/S`,
+`A/D`, and `R/F`, while rotation uses `U/J`, `I/K`, and `O/L`. Use `Z/X` to
+open/close the selected gripper, and `5/6` to reset the left/right arm gradually. See the
+[keyboard and VR simulation guide](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik/README.md)
+for all controls and speed options.
+
+#### 1.2 Computer VR Practice Terminal A: Start Telegrip
 
 ```bash
 cd software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik
@@ -533,7 +548,7 @@ Connect the headset and computer to the same LAN. In the headset browser, open
 `https://192.168.31.245:8443` (computer IP), verify the self-signed certificate
 warning, and enter VR.
 
-#### 1.2 Computer Practice Terminal B: Start the Complete Robot Simulation
+#### 1.3 Computer VR Practice Terminal B: Start the Complete Robot Simulation
 
 ```bash
 cd software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik
@@ -547,7 +562,7 @@ real camera feed will appear in the headset; simulation still works.
 `vr_images.enabled` is currently `false` in `telegrip/config.yaml`; leave it
 disabled for practice. Changing it requires restarting Telegrip.
 
-#### 1.3 Practice Controller Inputs in Order
+#### 1.4 Practice Controller Inputs in Order
 
 <table align="center">
   <tr>
@@ -584,7 +599,34 @@ reachable area instead of pushing farther out. See the
 [controller tutorial](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik/README.md)
 for complete instructions.
 
-#### 1.4 Move to Hardware Only After Practice
+#### 1.5 Collect, Train, and Run Policies in Simulation
+
+The complete MuJoCo environment is also a reproducible policy-development
+environment. Demonstrations can be controlled by **keyboard or VR**, recorded
+with the same 18-D state/action schema and `front`, `left_wrist`, and
+`right_wrist` camera keys used by the robot, then visualized, trained, and
+played back through a policy in MuJoCo.
+
+| Stage | MuJoCo process (`hei-rebot-vr`) | LeRobot process (`lerobot5`) |
+| --- | --- | --- |
+| Keyboard demonstration | `run_hei_robot_keyboard_dataset_sim.sh` | `run_hei_robot_keyboard_record.sh` |
+| VR demonstration | Telegrip + `run_hei_robot_vr_dataset_sim.sh` | `run_hei_robot_mujoco_record.sh` |
+| Dataset inspection | - | `lerobot-dataset-viz` or `inspect_mujoco_dataset.py` |
+| Policy training | - | `lerobot-train` with ACT or another supported policy |
+| Simulation inference | `run_hei_robot_policy_sim.sh` | `run_hei_robot_mujoco_rollout.sh` |
+
+The ordinary `run_hei_robot_keyboard_sim.sh` and `run_hei_robot_vr_sim.sh`
+commands are practice-only and do not publish dataset samples. Recording uses
+the dedicated `*_dataset_sim.sh` server plus its recorder in a second terminal.
+Keep the simulation and recording FPS equal.
+
+Follow the **[MuJoCo Dataset, Training, and Inference Guide](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik/mujoco_ik/SIM_DATASET_WORKFLOW.md)**
+for exact environment boundaries, launch commands, keyboard/VR recording,
+episode visualization, ACT training, and policy rollout. This workflow never
+connects to the physical robot unless you separately start the real-robot
+programs.
+
+#### 1.6 Move to Hardware Only After Practice
 
 - Control each arm's translation/rotation and confidently release/recapture the relative origin with `grip`.
 - Recenter with the Meta Quest button and know to recalibrate after moving, changing heading, or observing a direction mismatch.

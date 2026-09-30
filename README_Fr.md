@@ -95,7 +95,7 @@ Le tableau présente l'état actuel du projet et les liens vers la documentation
 | --- | --- | --- | --- |
 | Structure du robot | Première version terminée | Double bras, plateforme élévatrice et base omnidirectionnelle à quatre roues en configuration O intégrés et testés ensemble | [Matériel](hardware/README.md) |
 | URDF du robot complet | Terminé | Modèle du châssis, des roues, de l'élévateur, des bras, des pinces parallèles et des repères TCP pour la simulation et l'IK sur robot réel | [Modèle URDF](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik/mujoco_ik/model/HEI_robot_urdf/) |
-| Tests de simulation MuJoCo | Terminés | Contrôle VR des bras, pinces, élévateur et châssis testé, avec animation des roues, projection dans l'espace de travail et démonstrations de prise et dépose en mode de préhension stable | [Guide de simulation](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik/README.md) |
+| Tests de simulation MuJoCo | Terminés | Contrôle clavier et VR des bras, pinces, élévateur et châssis testé, avec animation des roues, projection dans l'espace de travail et démonstrations de prise et dépose en mode de préhension stable | [Guide de simulation](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik/README.md) |
 | Pilote des moteurs Damiao | Première version terminée | `damiao_u2can` contrôle les bras, pinces, moteurs du châssis et de l'élévateur | [Damiao U2CAN](software/lerobot-hei-rebot-lift/src/lerobot/motors/damiao_u2can/) |
 | Plateforme élévatrice | Première version terminée | Homing sur la limite haute au démarrage et commande de position cible `height.pos` | [Pilote du robot](software/lerobot-hei-rebot-lift/src/lerobot/robots/hei_rebot_lift/README.md) · [Contrôle indépendant de l'élévateur](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/README.md#independent-lift-test) |
 | Base omnidirectionnelle | Première version terminée | Commandes `x.vel`, `y.vel` et `theta.vel`, avec lissage de l'accélération et de la décélération | [Pilote du robot](software/lerobot-hei-rebot-lift/src/lerobot/robots/hei_rebot_lift/README.md) · [Contrôle indépendant du châssis](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/README.md#independent-chassis-test) |
@@ -287,7 +287,17 @@ sur le LAN. Le paramètre `--remote-ip` ne modifie pas `telegrip/config.yaml`.
 <p align="center"><img src="media/robot-mujoco.png" alt="Simulation HEI ReBot Lift" width="85%"></p>
 
 Sur l'ordinateur uniquement; **ne pas lancer le host, teleoperate, record ou le
-pont réel**. Terminal A:
+pont réel**. Pour pratiquer sans casque, lancer d'abord la simulation clavier:
+
+```bash
+cd software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik
+./run_hei_robot_keyboard_sim.sh
+```
+
+Les modes `1/2/3/4` sélectionnent le châssis, l'élévateur, le bras gauche ou le
+bras droit; `5/6` réinitialisent progressivement le bras gauche/droit. Le détail des touches et vitesses se trouve dans le
+[guide de simulation](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik/README.md).
+Pour pratiquer en VR, démarrer ensuite le terminal A:
 
 ```bash
 cd software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik

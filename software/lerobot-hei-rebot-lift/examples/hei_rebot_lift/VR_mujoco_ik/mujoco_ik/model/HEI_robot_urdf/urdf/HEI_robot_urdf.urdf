@@ -1596,4 +1596,204 @@
       multiplier="-1"
       offset="0" />
   </joint>
+
+  <!-- 三个相机的安装位姿来自 HEI_robot_urdf_2 的 SolidWorks 装配。 -->
+  <link
+    name="right_wrist_camera_link">
+    <inertial>
+      <origin
+        xyz="-1.83994319780112E-10 -0.0080593002497229 -0.0025944226967575"
+        rpy="0 0 0" />
+      <mass
+        value="0.0357371195664808" />
+      <inertia
+        ixx="8.22126723757203E-06"
+        ixy="-2.43604608891164E-13"
+        ixz="3.77131655578577E-14"
+        iyy="6.5733402296538E-06"
+        iyz="3.82586451924624E-07"
+        izz="1.29090768314851E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="../meshes/right_wrist_camera_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.501960784313725 0.501960784313725 0.501960784313725 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="../meshes/right_wrist_camera_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_wrist_camera_joint"
+    type="fixed">
+    <origin
+      xyz="0.090465710248936 0 0.0605783166800833"
+      rpy="1.83259571459404 0 1.5707963267949" />
+    <parent
+      link="a_right_link6" />
+    <child
+      link="right_wrist_camera_link" />
+  </joint>
+  <!--
+    SW2URDF 导出的 camera_link 使用 +Z 朝镜头、+X 向画面左、+Y 向画面上。
+    optical frame 绕本地 Z 轴旋转 180 度后得到 +X 画面右、+Y 画面下、+Z 镜头前方。
+  -->
+  <link
+    name="right_wrist_camera_optical_frame" />
+  <joint
+    name="right_wrist_camera_optical_joint"
+    type="fixed">
+    <origin
+      xyz="0 0 0"
+      rpy="0 0 3.14159265358979" />
+    <parent
+      link="right_wrist_camera_link" />
+    <child
+      link="right_wrist_camera_optical_frame" />
+  </joint>
+
+  <link
+    name="left_wrist_camera_link">
+    <inertial>
+      <origin
+        xyz="-1.83994347535688E-10 -0.00805930024972468 -0.00259442269676402"
+        rpy="0 0 0" />
+      <mass
+        value="0.0357371195664808" />
+      <inertia
+        ixx="8.22126723757204E-06"
+        ixy="-2.43604605174126E-13"
+        ixz="3.77131517718866E-14"
+        iyy="6.57334022965382E-06"
+        iyz="3.82586451924671E-07"
+        izz="1.29090768314851E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="../meshes/left_wrist_camera_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.501960784313725 0.501960784313725 0.501960784313725 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="../meshes/left_wrist_camera_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_wrist_camera_joint"
+    type="fixed">
+    <origin
+      xyz="0.090466 0 0.060578"
+      rpy="1.8326 0 1.5708" />
+    <parent
+      link="b_left_link6" />
+    <child
+      link="left_wrist_camera_link" />
+  </joint>
+  <link
+    name="left_wrist_camera_optical_frame" />
+  <joint
+    name="left_wrist_camera_optical_joint"
+    type="fixed">
+    <origin
+      xyz="0 0 0"
+      rpy="0 0 3.14159265358979" />
+    <parent
+      link="left_wrist_camera_link" />
+    <child
+      link="left_wrist_camera_optical_frame" />
+  </joint>
+
+  <link
+    name="front_camera_link">
+    <inertial>
+      <origin
+        xyz="1.38777878078145E-17 2.22044604925031E-16 -0.00572523485694387"
+        rpy="0 0 0" />
+      <mass
+        value="0.0159332340793735" />
+      <inertia
+        ixx="1.89499692467315E-06"
+        ixy="1.51936356636096E-22"
+        ixz="4.90980352083048E-22"
+        iyy="1.88281068676988E-06"
+        iyz="4.76456032830544E-22"
+        izz="3.33082932706183E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="../meshes/front_camera_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="../meshes/front_camera_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="front_camera_joint"
+    type="fixed">
+    <origin
+      xyz="0.117677245413621 -0.000399999999995397 0.294449693458613"
+      rpy="2.1816615649929 0 1.57079632679492" />
+    <parent
+      link="lift_carriage_link" />
+    <child
+      link="front_camera_link" />
+  </joint>
+  <link
+    name="front_camera_optical_frame" />
+  <joint
+    name="front_camera_optical_joint"
+    type="fixed">
+    <origin
+      xyz="0 0 0"
+      rpy="0 0 3.14159265358979" />
+    <parent
+      link="front_camera_link" />
+    <child
+      link="front_camera_optical_frame" />
+  </joint>
 </robot>

@@ -922,6 +922,10 @@ class HEIRobotVRSimulator:
 
     def _step_sim_chassis(self, controllers: dict[str, dict], fresh: bool, dt: float) -> None:
         self._set_sim_chassis_command(controllers, fresh)
+        self._integrate_sim_chassis(dt)
+
+    def _integrate_sim_chassis(self, dt: float) -> None:
+        """Integrate the current body command and animate the four wheels."""
         command_x, command_y, command_yaw_rate = self.sim_chassis_velocity
         # 真机安装方向中 X/Y 都需要反向，旋转方向不反。MuJoCo 位姿也必须应用相同
         # 方向参数，否则轮速动画正确，但整机前后和左右移动会与真机相反。

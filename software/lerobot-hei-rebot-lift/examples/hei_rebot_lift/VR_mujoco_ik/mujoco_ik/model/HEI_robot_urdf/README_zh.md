@@ -62,7 +62,35 @@
 仿真夹爪默认闭合，保持 grip 时按 trigger 张开、松 trigger 闭合，松 grip 保持
 最后状态；真机启动先同步反馈的实际夹爪状态。
 
-## 5. 导出编译后的 MJCF
+## 5. 相机 TF
+
+模型包含三个随机器人运动的相机安装 link，以及对应的标准 optical frame：
+
+- `front_camera_link` 挂载到 `lift_carriage_link`。
+- `left_wrist_camera_link` 挂载到 `b_left_link6`。
+- `right_wrist_camera_link` 挂载到 `a_right_link6`。
+- 对应 optical frame 分别为 `front_camera_optical_frame`、
+  `left_wrist_camera_optical_frame` 和 `right_wrist_camera_optical_frame`。
+
+本次 SW2URDF 导出的 camera link 使用 `+Z` 朝镜头、`+X` 向画面左、`+Y`
+向画面上；optical frame 将其转换为 `+X` 画面右、`+Y` 画面下、`+Z`
+镜头前方。`hei_robot_mujoco_scene.py` 会在这些 frame 上创建三个 MuJoCo
+具名相机：`front`、`left_wrist` 和 `right_wrist`。
+
+当前三路分辨率均为 `640x480`。`front` 暂按 D435 RGB 的典型垂直视场角
+`42.5°` 配置；两路腕部相机在取得实测内参前暂用 `60°`。一次性输出三路
+预览图：
+
+```bash
+cd software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik
+MUJOCO_GL=egl conda run --no-capture-output -n hei-rebot-vr \
+  python mujoco_ik/preview_mujoco_cameras.py
+```
+
+图片保存在 `mujoco_ik/outputs/camera_preview/`。相机内参确定后，应使用
+`fovy = 2 * atan(height / (2 * fy))` 更新场景构建器中的垂直视场角。
+
+## 6. 导出编译后的 MJCF
 
 回到本模型目录执行：
 
@@ -73,7 +101,7 @@
 导出的 XML 用于检查 MuJoCo 的解释结果，URDF 仍是源模型；移动 XML 后可能需要
 调整 mesh 路径。
 
-## 6. 模型约定
+## 7. 模型约定
 
 - 臂关节范围沿用旧 `reBot_dual_with_gripper.urdf` 控制约定。
 - 关节 2 使用新 SW 局部轴 `0 -1 0`，物理方向对应旧模型旋转后的 `0 0 -1`。
