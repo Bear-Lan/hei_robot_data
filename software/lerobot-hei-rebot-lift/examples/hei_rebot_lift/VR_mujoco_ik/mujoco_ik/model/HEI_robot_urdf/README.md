@@ -74,6 +74,36 @@ The model also contains fixed kinematic frames at the center of each gripper:
 - `a_right_end_link` and `b_left_end_link`: center of the finger rails.
 - `a_right_tcp` and `b_left_tcp`: nominal grasp point centered between the fingertips.
 
+## Camera frames
+
+The model contains three camera mount links and their standard optical frames:
+
+- `front_camera_link` is fixed to `lift_carriage_link`.
+- `left_wrist_camera_link` is fixed to `b_left_link6`.
+- `right_wrist_camera_link` is fixed to `a_right_link6`.
+- Their optical frames are `front_camera_optical_frame`,
+  `left_wrist_camera_optical_frame`, and `right_wrist_camera_optical_frame`.
+
+The SW2URDF camera links use local `+Z` forward, `+X` toward image left, and
+`+Y` toward image up. Each optical frame converts this to the conventional
+`+X` image right, `+Y` image down, and `+Z` forward convention.
+`hei_robot_mujoco_scene.py` attaches the named MuJoCo cameras `front`,
+`left_wrist`, and `right_wrist` to these frames.
+
+All three cameras currently render at `640x480`. The front D435 uses an
+approximate `42.5°` vertical field of view, while both wrist cameras temporarily
+use `60°` until measured intrinsics are available. Render one image per camera:
+
+```bash
+cd software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik
+MUJOCO_GL=egl conda run --no-capture-output -n hei-rebot-vr \
+  python mujoco_ik/preview_mujoco_cameras.py
+```
+
+Images are written to `mujoco_ik/outputs/camera_preview/`. Once camera
+intrinsics are measured, update the vertical field of view with
+`fovy = 2 * atan(height / (2 * fy))`.
+
 ## Export compiled MJCF
 
 ```bash

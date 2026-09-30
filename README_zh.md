@@ -28,7 +28,7 @@
 <p align="center">
   <a href="#-快速部署">🚀 快速部署</a> ·
   <a href="#-硬件组成">🦾 硬件组成</a> ·
-  <a href="#-启动流程">🎮 VR 遥操作</a> ·
+  <a href="#-启动流程">🎮 仿真 / 遥操作</a> ·
   <a href="#-录制数据">📷 数据录制</a> ·
   <a href="#-训练-act">🧠 ACT 训练</a> ·
   <a href="#-训练-smolvla">✨ VLA 训练</a>
@@ -50,9 +50,9 @@
     <tr><td align="center">🦾</td><td align="center">双臂操作</td><td align="center">达妙双臂 + 夹爪，支持实机遥操作、录制和策略推理</td></tr>
     <tr><td align="center">⬆️</td><td align="center">升降平台</td><td align="center">启动自动 homing，上限位作为 <code>height.pos = 0</code>，支持位置控制</td></tr>
     <tr><td align="center">⭕</td><td align="center">全向底盘</td><td align="center">四轮 O 型全向移动底盘，支持 <code>x/y/theta</code> 速度控制</td></tr>
-    <tr><td align="center">🎮</td><td align="center">VR 遥操作</td><td align="center">Telegrip 获取 VR 手柄数据，MuJoCo + Pinocchio/CasADi 做 IK</td></tr>
+    <tr><td align="center">🎮</td><td align="center">键盘 / VR 控制</td><td align="center">完整 MuJoCo 机器人支持键盘或 VR 控制；VR 使用 Telegrip + Pinocchio/CasADi IK 链路</td></tr>
     <tr><td align="center">📷</td><td align="center">三相机数据</td><td align="center"><code>front</code>、<code>left_wrist</code>、<code>right_wrist</code> 三路视觉输入</td></tr>
-    <tr><td align="center">🧠</td><td align="center">模仿学习/VLA</td><td align="center">支持 LeRobotDataset、ACT、SmolVLA 和真实机器人 rollout</td></tr>
+    <tr><td align="center">🧠</td><td align="center">模仿学习 / VLA</td><td align="center">支持键盘/VR 仿真采集、LeRobotDataset 可视化、ACT/VLA 训练，以及仿真和真机策略推理</td></tr>
   </tbody>
 </table>
 
@@ -125,14 +125,15 @@ cd software/lerobot-hei-rebot-lift
 | --- | --- | --- | --- |
 | 机械本体 | ✅ 已完成首版 | 双臂 + 升降平台 + 四轮 O 型全向底盘整体方案已跑通 | [Hardware](hardware/README.md) |
 | 完整机器人 URDF | ✅ 已完成 | 已建立底盘、轮组、升降、双臂、平行夹爪与 TCP 坐标系的完整模型，用于仿真和真机 IK | [URDF 模型](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik/mujoco_ik/model/HEI_robot_urdf/) |
-| MuJoCo 仿真测试 | ✅ 已完成 | 已测试 VR 控制双臂、夹爪、升降与底盘，支持轮组动画、工作空间投影及稳定抓取模式的取放演示 | [仿真教程](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik/README_zh.md) |
+| MuJoCo 仿真测试 | ✅ 已完成 | 已测试键盘与 VR 控制双臂、夹爪、升降与底盘，支持轮组动画、工作空间投影及稳定抓取模式的取放演示 | [仿真教程](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik/README_zh.md) |
+| 仿真数据与策略闭环 | ✅ 已跑通 | 键盘或 VR 示教可发布同步的 18 维状态/动作和三路相机画面，支持 LeRobotDataset 录制、可视化、ACT 训练及 MuJoCo 策略推理 | [采集、训练与推理教程](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik/mujoco_ik/SIM_DATASET_WORKFLOW_zh.md) |
 | 达妙电机驱动 | ✅ 已完成首版 | 已封装 `damiao_u2can`，支持双臂、夹爪、底盘和升降电机控制 | [Damiao U2CAN](software/lerobot-hei-rebot-lift/src/lerobot/motors/damiao_u2can/) |
 | 升降平台 | ✅ 已完成首版 | 支持启动上限位 homing，并使用 `height.pos` 位置目标控制 | [Robot Driver](software/lerobot-hei-rebot-lift/src/lerobot/robots/hei_rebot_lift/README.md) · [升降独立控制](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/README_zh.md#单独调试升降) |
 | 全向底盘 | ✅ 已完成首版 | 支持 `x.vel`、`y.vel`、`theta.vel` 控制，并加入基础加减速平滑 | [Robot Driver](software/lerobot-hei-rebot-lift/src/lerobot/robots/hei_rebot_lift/README.md) · [底盘独立控制](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/README_zh.md#单独调试底盘) |
 | 三相机视觉 | ✅ 已完成首版 | 支持 `front`、`left_wrist`、`right_wrist` 三路 OpenCV 相机，默认 MJPG | [Robot Driver](software/lerobot-hei-rebot-lift/src/lerobot/robots/hei_rebot_lift/README.md) |
 | VR + MuJoCo IK | ✅ 已完成首版 | Telegrip + MuJoCo + Pinocchio/CasADi 已接入真实机器人控制链路 | [VR MuJoCo IK](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik/README.md) |
 | LeRobot 集成 | ✅ 已完成首版 | 已实现 `hei_rebot_lift` robot/client/host，支持 teleoperate、record、replay、evaluate、rollout | [Examples](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/README.md) |
-| 数据采集 | ✅ 已完成首版 | 支持 LeRobotDataset 录制、继续录制、可视化和坏 episode 清理 | [Record Guide](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/README.md) |
+| 真机数据采集 | ✅ 已完成首版 | 支持 LeRobotDataset 录制、继续录制、可视化和坏 episode 清理 | [Record Guide](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/README_zh.md) |
 | ACT 训练与推理 | ✅ 已跑通 | 支持 ACT 训练和真实机器人 rollout | [Examples](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/README.md) |
 | SmolVLA / VLA | ✅ 初步跑通 | 支持 SmolVLA 训练和真实机器人推理入口 | [Examples](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/README.md) |
 | 硬件开源资料 | ✅ 已完成 | 已提供整机 BOM、整机 STEP 总装、打印件 STL、金属件清单及 STEP/DWG 加工图纸 | [硬件说明](hardware/README_zh.md) |
@@ -475,7 +476,7 @@ def hei_rebot_lift_cameras_config() -> dict[str, CameraConfig]:
 | `192.168.31.127` | 机器人 Jetson，运行 host | 电脑客户端的 `--remote-ip 192.168.31.127`；VR 相机地址 `tcp://192.168.31.127:6556` |
 | `localhost` / `127.0.0.1` | 当前程序所在机器自身，不是远端机器人 | Telegrip、MuJoCo IK 与客户端都在同一电脑时，用于电脑内部 VR、动作和反馈连接 |
 
-先完成下面的纯仿真练习，再进入真机流程。纯仿真只需电脑和头显互通；真机阶段
+先完成下面的纯仿真练习，再进入真机流程。键盘仿真只需电脑，VR 仿真需要电脑和头显互通；真机阶段
 再确保机器人、电脑与头显处于能互相访问的同一局域网。
 **每个命令块都在指定机器的新终端、项目根目录执行**；长时间运行的进程不要关闭。
 
@@ -489,7 +490,20 @@ def hei_rebot_lift_cameras_config() -> dict[str, CameraConfig]:
 `teleoperate.py`、`record.py` 或真机桥接程序**；若它们已运行，先停止。
 纯仿真不需要电机、端口绑定或机器人反馈，也不会发布 `6558` 真机动作命令。
 
-#### 1.1 电脑练习终端 A：启动 Telegrip
+#### 1.1 无头显时先用键盘练习
+
+```bash
+cd software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik
+./run_hei_robot_keyboard_sim.sh
+```
+
+按 `1/2/3/4` 分别选择底盘、升降、左臂和右臂。底盘使用 `W/S`、`A/D`、
+`Q/E`；升降使用 `I/K`；机械臂末端使用 `W/S`、`A/D`、`R/F` 控制 XYZ，
+`U/J`、`I/K`、`O/L` 控制 Rx/Ry/Rz，`Z/X` 张开/闭合夹爪；按 `5/6` 分别
+缓慢复位左臂/右臂。完整键位和速度参数见
+[键盘与 VR 仿真教程](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik/README_zh.md)。
+
+#### 1.2 电脑 VR 练习终端 A：启动 Telegrip
 
 ```bash
 cd software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik
@@ -499,7 +513,7 @@ cd software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik
 VR 头显与电脑连接同一局域网，在头显浏览器访问
 `https://192.168.31.245:8443`（电脑 IP），确认自签名证书后进入 VR。
 
-#### 1.2 电脑练习终端 B：启动完整机器人仿真
+#### 1.3 电脑 VR 练习终端 B：启动完整机器人仿真
 
 ```bash
 cd software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik
@@ -511,7 +525,7 @@ cd software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik
 收到实机相机图像，这不影响仿真练习。当前 `telegrip/config.yaml` 已设为
 `vr_images.enabled: false`，练习时保持关闭即可；修改后需要重启 Telegrip。
 
-#### 1.3 按顺序练习手柄操作
+#### 1.4 按顺序练习手柄操作
 
 <table align="center">
   <tr>
@@ -545,7 +559,30 @@ Meta Quest 按钮校准的是**头显/VR 参考坐标**；`grip` 建立的是每
 减小动作并返回可达区域，不要持续向边界外推。完整说明见
 [VR 手柄教程](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik/README_zh.md)。
 
-#### 1.4 练熟后再进入真机
+#### 1.5 在仿真中采集、训练和推理
+
+完整 MuJoCo 环境不仅用于练习，也可以作为独立的策略开发环境。示教既可使用
+**键盘控制，也可使用 VR 控制**；采集的数据采用与真机一致的 18 维状态/动作
+字段，以及 `front`、`left_wrist`、`right_wrist` 三路相机名称，之后可直接进行
+可视化、策略训练和 MuJoCo 推理验证。
+
+| 阶段 | MuJoCo 进程（`hei-rebot-vr`） | LeRobot 进程（`lerobot5`） |
+| --- | --- | --- |
+| 键盘示教采集 | `run_hei_robot_keyboard_dataset_sim.sh` | `run_hei_robot_keyboard_record.sh` |
+| VR 示教采集 | Telegrip + `run_hei_robot_vr_dataset_sim.sh` | `run_hei_robot_mujoco_record.sh` |
+| 数据检查与可视化 | - | `lerobot-dataset-viz` 或 `inspect_mujoco_dataset.py` |
+| 策略训练 | - | `lerobot-train`，可选择 ACT 或项目支持的其他策略 |
+| 仿真策略推理 | `run_hei_robot_policy_sim.sh` | `run_hei_robot_mujoco_rollout.sh` |
+
+普通的 `run_hei_robot_keyboard_sim.sh` 和 `run_hei_robot_vr_sim.sh` 只用于
+练习，不会发布数据。正式采集时，需要在两个终端分别运行对应的
+`*_dataset_sim.sh` 仿真服务和录制程序，并保持两端 FPS 一致。
+
+请按 **[MuJoCo 仿真数据采集、训练与推理完整教程](software/lerobot-hei-rebot-lift/examples/hei_rebot_lift/VR_mujoco_ik/mujoco_ik/SIM_DATASET_WORKFLOW_zh.md)**
+依次完成环境区分、键盘/VR 采集、episode 可视化、ACT 训练和策略仿真推理。
+该流程默认完全不连接真实机器人；只有单独启动真机相关程序时才会进入硬件链路。
+
+#### 1.6 练熟后再进入真机
 
 - 能分别控制左右臂平移、旋转，并熟练松开/重新按住 `grip` 建立新原点。
 - 能长按 Meta Quest 按钮校准 VR 原点，知道换位置、换朝向或方向不一致时要重新校准。

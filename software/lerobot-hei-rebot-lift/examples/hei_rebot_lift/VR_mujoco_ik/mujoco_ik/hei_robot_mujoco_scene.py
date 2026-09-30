@@ -14,6 +14,7 @@ SAFETY_AREA_HALF_SIZE_M = 2.0
 START_AREA_HALF_SIZE_M = 0.35
 LINE_HALF_WIDTH_M = 0.015
 LINE_HALF_HEIGHT_M = 0.003
+CAMERA_RESOLUTION = (640, 480)
 
 # 桌面放在机器人正前方，尺寸兼顾双臂可达范围和底盘调试空间。
 TABLE_CENTER_X_M = 0.92
@@ -22,6 +23,24 @@ TABLE_HALF_LENGTH_X_M = 0.48
 TABLE_HALF_WIDTH_Y_M = 0.62
 TABLE_TOP_Z_M = 0.78
 TABLE_TOP_HALF_THICKNESS_M = 0.035
+
+
+@dataclass(frozen=True)
+class RobotCameraSpec:
+    """A named MuJoCo camera attached to one URDF optical frame."""
+
+    name: str
+    optical_frame: str
+    fovy_deg: float
+
+
+ROBOT_CAMERAS = (
+    # D435 RGB 在 640x480 下的典型垂直视场角约为 42.5 度。
+    RobotCameraSpec(name="front", optical_frame="front_camera_optical_frame", fovy_deg=42.5),
+    # 腕部 UVC 相机暂无实测内参，先使用较宽的 60 度垂直视场角。
+    RobotCameraSpec(name="left_wrist", optical_frame="left_wrist_camera_optical_frame", fovy_deg=60.0),
+    RobotCameraSpec(name="right_wrist", optical_frame="right_wrist_camera_optical_frame", fovy_deg=60.0),
+)
 
 
 @dataclass(frozen=True)
@@ -91,6 +110,26 @@ SCENE_GEOMS = (
     "hei_table_leg_rear_right",
     *(obj.geom_name for obj in GRASPABLE_OBJECTS),
 )
+
+
+def _add_robot_cameras(spec: mujoco.MjSpec) -> None:
+    """Attach MuJoCo cameras to the standard optical frames exported by the URDF."""
+    for camera_spec in ROBOT_CAMERAS:
+        optical_body = spec.body(camera_spec.optical_frame)
+        if optical_body is None:
+            raise ValueError(
+                f"MuJoCo model is missing camera optical frame: {camera_spec.optical_frame}"
+            )
+
+        # Optical frame: +X image right, +Y image down, +Z forward.
+        # MuJoCo looks along camera -Z, so retain +X and flip local Y/Z.
+        optical_body.add_camera(
+            name=camera_spec.name,
+            pos=[0.0, 0.0, 0.0],
+            xyaxes=[1.0, 0.0, 0.0, 0.0, -1.0, 0.0],
+            fovy=camera_spec.fovy_deg,
+            resolution=list(CAMERA_RESOLUTION),
+        )
 
 
 def _add_line_box(
@@ -176,17 +215,6 @@ def _add_lights(spec: mujoco.MjSpec) -> None:
         diffuse=[0.08, 0.09, 0.12],
         ambient=[0.0, 0.0, 0.0],
         specular=[0.02, 0.02, 0.03],
-    )
-
-
-def _add_recording_camera(spec: mujoco.MjSpec) -> None:
-    """Add the existing front camera used by the simulation recorder."""
-    forward_xyaxes = [0.0, -1.0, 0.0, 0.0, 0.0, 1.0]
-    spec.body("lift_carriage_link").add_camera(
-        name="front",
-        pos=[0.20, 0.0, 0.10],
-        xyaxes=forward_xyaxes,
-        fovy=65.0,
     )
 
 
@@ -353,15 +381,13 @@ def _add_graspable_objects(spec: mujoco.MjSpec) -> None:
 def build_mujoco_model(urdf_path: str | Path, *, add_environment: bool = True) -> mujoco.MjModel:
     """Compile the robot URDF, optionally adding the non-physical debug scene."""
     urdf_path = Path(urdf_path).expanduser().resolve()
-    if not add_environment:
-        return mujoco.MjModel.from_xml_path(str(urdf_path))
-
     spec = mujoco.MjSpec.from_file(str(urdf_path))
-    _add_floor_and_sky(spec)
-    _add_lights(spec)
-    _add_recording_camera(spec)
-    _add_floor_markings(spec)
-    _add_world_axes(spec)
-    _add_table(spec)
-    _add_graspable_objects(spec)
+    _add_robot_cameras(spec)
+    if add_environment:
+        _add_floor_and_sky(spec)
+        _add_lights(spec)
+        _add_floor_markings(spec)
+        _add_world_axes(spec)
+        _add_table(spec)
+        _add_graspable_objects(spec)
     return spec.compile()

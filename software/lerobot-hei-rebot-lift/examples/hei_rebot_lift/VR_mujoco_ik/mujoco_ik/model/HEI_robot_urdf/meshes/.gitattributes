@@ -1,0 +1,5 @@
+# These camera meshes are committed upstream as ordinary binary Git blobs.
+# Override the inherited *.stl LFS rule, also matched for .STL on Windows.
+front_camera_link.STL -filter -diff -merge -text
+left_wrist_camera_link.STL -filter -diff -merge -text
+right_wrist_camera_link.STL -filter -diff -merge -text

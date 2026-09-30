@@ -8,6 +8,7 @@
 - `mujoco_ik/`：接收 Telegrip 的 VR 数据，用 MuJoCo 显示完整机器人模型（或旧双臂模型），用 Pinocchio + CasADi 做正逆解，并通过 ZMQ 发布 LeRobot 可用的动作命令到 `tcp://*:6558`。
 - `examples/hei_rebot_lift/vr_control.py`：接收动作，同时在 `tcp://*:6559` 发布轻量实机关节/升降反馈，用于真机启动前安全同步。
 - `mujoco_ik/hei_robot_vr_mujoco_sim.py`：使用完整机器人模型进行纯仿真 VR 控制，不会向真实机器人发送命令。
+- `mujoco_ik/hei_robot_keyboard_mujoco_sim.py`：使用键盘控制完整机器人仿真，不需要 VR，也不会连接实机。
 - LeRobot 录制端 `examples/hei_rebot_lift/record.py` 订阅 `tcp://localhost:6558`，把动作和机器人观测保存成数据集。
 
 ## 目录结构
@@ -17,6 +18,7 @@ VR_mujoco_ik/
   environment.yml          # 统一 conda 环境，Telegrip + MuJoCo IK 共用
   run_telegrip.sh          # 启动 VR Web 页面和 VR 数据发布
   run_mujoco_ik.sh         # 原双臂实机动作链路
+  run_hei_robot_keyboard_sim.sh # 完整机器人键盘纯仿真
   run_hei_robot_vr_sim.sh  # 完整机器人 VR 纯仿真
   run_hei_robot_vr_real.sh # 完整模型 + 真实机器人命令桥接
   telegrip/                # WebXR/HTTPS/WebSocket/ZMQ VR 桥
@@ -55,9 +57,53 @@ env -u LD_LIBRARY_PATH python -c "import pinocchio as pin; from pinocchio import
 
 ## 启动流程
 
-纯仿真通常两个终端；真机还需机器人 host 和一个电脑客户端，共四个终端。
+键盘纯仿真只需一个终端；VR 纯仿真通常两个终端；真机还需机器人 host 和一个电脑客户端，共四个终端。
 
-### 1. 启动 Telegrip
+### 1. 先用键盘熟悉完整机器人仿真
+
+键盘模式不需要启动 Telegrip，也不会向真实机器人发布命令：
+
+```bash
+cd examples/hei_rebot_lift/VR_mujoco_ik
+./run_hei_robot_keyboard_sim.sh
+```
+
+程序通过模式键避免底盘、升降和双臂键位冲突。按住运动键连续运动，松开后停止；
+TCP 的位置和姿态增量均以机器人固定坐标系定义：`+X` 前、`+Y` 左、`+Z` 上。
+
+| 模式/按键 | 功能 |
+| --- | --- |
+| `1` | 底盘模式 |
+| 底盘模式 `W/S`、`A/D`、`Q/E` | 前后、左右横移、左右旋转 |
+| `2` | 升降模式 |
+| 升降模式 `I/K` | 上升/下降 |
+| `3` / `4` | 选择左臂/右臂末端控制 |
+| `5` / `6` | 左臂/右臂缓慢复位；按一下即可，重新操作对应臂会取消复位 |
+| 手臂模式 `W/S`、`A/D`、`R/F` | TCP `X/Y/Z` 正负方向平移 |
+| 手臂模式 `U/J`、`I/K`、`O/L` | TCP `Rx/Ry/Rz` 正负方向旋转 |
+| 手臂模式 `Z/X` | 当前夹爪张开/闭合，并支持场景物体稳定抓取 |
+| `Shift` | 按住进入精细低速控制，默认速度为正常速度的 25% |
+| `Space` | 立即清除底盘速度并保持双臂当前位置 |
+| `V` / `Backspace` / `Esc` | 显示坐标系/整机复位/退出 |
+
+默认 TCP 平移速度为 `0.12 m/s`、姿态速度为 `35 deg/s`、升降速度为
+`0.20 m/s`。可通过参数调整，例如：
+
+```bash
+./run_hei_robot_keyboard_sim.sh \
+  --arm-linear-speed-m-s 0.08 \
+  --arm-angular-speed-deg-s 25 \
+  --lift-speed-m-s 0.12 \
+  --fine-scale 0.2
+```
+
+无窗口检查键盘映射、模型、双臂 FK/IK、底盘和稳定抓取：
+
+```bash
+./run_hei_robot_keyboard_sim.sh --headless-check
+```
+
+### 2. 启动 Telegrip
 
 电脑端：
 
@@ -76,7 +122,7 @@ https://电脑IP:8443
 机器人 IP 是另一个地址（示例为 `192.168.31.127`），不要混用。首次遇到自签名
 证书提示时，先确认地址确实是自己的电脑，再继续访问。
 
-### 2A. 先用完整模型测试 VR 仿真
+### 3A. 用完整模型测试 VR 仿真
 
 需要把 VR 操作保存为 ACT 训练数据时，请阅读
 [VR MuJoCo 仿真数据采集流程](SIM_DATA_COLLECTION_README_zh.md)。采集器直接运行在纯仿真
@@ -186,7 +232,12 @@ Meta Quest 按钮校准的是**头显/VR 参考坐标**；`grip` 建立的是每
 `mujoco_ik/model/HEI_robot_urdf/scene_assets/ycb_011_banana/`，其 YCB 来源、
 引用方式和 CC BY 4.0 许可证说明见该目录的 `SOURCE.md`。
 
-### 2B. 用完整模型控制真实机器人
+熟悉 VR 仿真后，可继续阅读
+[MuJoCo 数据采集、ACT 训练与仿真推理](mujoco_ik/SIM_DATASET_WORKFLOW_zh.md)。
+这套流程保留与真机相同的 18 维动作/状态字段和三相机名称，但不会连接真实机器人。
+MuJoCo 使用 `hei-rebot-vr` 独立运行，采集、训练和推理使用 `lerobot5` 独立运行。
+
+### 3B. 用完整模型控制真实机器人
 
 解锁真机命令前，请清空机器人工作区并确保急停可随时按下。按 HEI ReBot Lift
 文档先启动机器人 host 和 `teleoperate.py`。`teleoperate.py` 会在 `6559` 端口以
@@ -227,7 +278,7 @@ VR 数据或实机反馈任意一路超时，程序都会先发送底盘/升降�
 按 grip 前先确认日志已显示新鲜反馈和 `command bridge ARMED`。关闭 viewer，或 VR/
 实机反馈超时时，底盘和升降会停止，机械臂保持最后关节目标。
 
-### 2C. 启动原有双臂实机 MuJoCo IK 链路
+### 3C. 启动原有双臂实机 MuJoCo IK 链路
 
 此入口与完整模型真机桥接**二选一**，不能同时发布到 `6558`。
 `teleoperate.py` 与 `record.py` 也只能运行一个，因为它们都在 `6559` 发布反馈。

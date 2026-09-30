@@ -8,6 +8,7 @@ This directory contains the complete VR teleoperation pipeline:
 - `mujoco_ik/`: receives Telegrip VR data, visualizes the complete robot model (or the legacy dual-arm model) in MuJoCo, solves FK/IK with Pinocchio + CasADi, and publishes LeRobot-compatible actions to `tcp://*:6558`.
 - `examples/hei_rebot_lift/vr_control.py`: receives those actions and publishes lightweight real-robot joint/lift feedback on `tcp://*:6559` for safe startup synchronization.
 - `mujoco_ik/hei_robot_vr_mujoco_sim.py`: controls the complete robot model in pure simulation. It never publishes commands to the real robot.
+- `mujoco_ik/hei_robot_keyboard_mujoco_sim.py`: controls the complete model by keyboard without VR or real-robot commands.
 - `examples/hei_rebot_lift/record.py`: subscribes to `tcp://localhost:6558` and saves robot actions/observations into a LeRobotDataset.
 
 ## Layout
@@ -17,6 +18,7 @@ VR_mujoco_ik/
   environment.yml          # Unified conda environment for Telegrip + MuJoCo IK
   run_telegrip.sh          # Start the VR Web page and VR data publisher
   run_mujoco_ik.sh         # Existing dual-arm real-robot action pipeline
+  run_hei_robot_keyboard_sim.sh # Complete robot, keyboard-controlled pure simulation
   run_hei_robot_vr_sim.sh  # Complete robot, VR-controlled pure simulation
   run_hei_robot_vr_real.sh # Complete model + real-robot command bridge
   telegrip/                # WebXR/HTTPS/WebSocket/ZMQ VR bridge
@@ -53,7 +55,53 @@ env -u LD_LIBRARY_PATH python -c "import pinocchio as pin; from pinocchio import
 
 ## Startup Flow
 
-### 1. Start Telegrip
+### 1. Practice With Keyboard Simulation
+
+Keyboard mode does not require Telegrip and never publishes real-robot commands:
+
+```bash
+cd examples/hei_rebot_lift/VR_mujoco_ik
+./run_hei_robot_keyboard_sim.sh
+```
+
+Mode keys prevent conflicts between chassis, lift, and arm controls. Hold a
+motion key for continuous movement and release it to stop. TCP translation and
+rotation use the fixed robot frame: `+X` forward, `+Y` left, and `+Z` up.
+
+| Mode/key | Function |
+| --- | --- |
+| `1` | Chassis mode |
+| Chassis `W/S`, `A/D`, `Q/E` | Forward/back, strafe left/right, rotate left/right |
+| `2` | Lift mode |
+| Lift `I/K` | Raise/lower |
+| `3` / `4` | Select left/right arm TCP control |
+| `5` / `6` | Reset the left/right arm gradually; press once, or move that arm to cancel |
+| Arm `W/S`, `A/D`, `R/F` | Translate TCP along positive/negative `X/Y/Z` |
+| Arm `U/J`, `I/K`, `O/L` | Rotate TCP about positive/negative `Rx/Ry/Rz` |
+| Arm `Z/X` | Open/close the selected gripper with stable scene grasping |
+| `Shift` | Fine control at 25% of normal speed by default |
+| `Space` | Clear chassis velocity immediately and hold both arms |
+| `V` / `Backspace` / `Esc` | Toggle frames/reset the robot/quit |
+
+Default speeds are `0.12 m/s` TCP translation, `35 deg/s` TCP rotation, and
+`0.20 m/s` lift motion. Override them when needed:
+
+```bash
+./run_hei_robot_keyboard_sim.sh \
+  --arm-linear-speed-m-s 0.08 \
+  --arm-angular-speed-deg-s 25 \
+  --lift-speed-m-s 0.12 \
+  --fine-scale 0.2
+```
+
+Validate keyboard mappings, model loading, FK/IK, chassis, and stable grasping
+without opening a window:
+
+```bash
+./run_hei_robot_keyboard_sim.sh --headless-check
+```
+
+### 2. Start Telegrip
 
 ```bash
 cd examples/hei_rebot_lift/VR_mujoco_ik
@@ -70,7 +118,7 @@ For example, use `https://192.168.31.245:8443` when that is your computer IP.
 The robot IP is different (examples use `192.168.31.127`). Verify the address is
 your computer before accepting the self-signed certificate warning.
 
-### 2A. Test VR With the Complete Robot Model
+### 3A. Test VR With the Complete Robot Model
 
 <p align="center">
   <img src="../../../../../media/robot-mujoco.png" alt="HEI ReBot Lift VR simulation in MuJoCo" width="85%">
@@ -177,7 +225,14 @@ The banana asset is stored under
 `mujoco_ik/model/HEI_robot_urdf/scene_assets/ycb_011_banana/`. See its
 `SOURCE.md` for YCB attribution and CC BY 4.0 licensing details.
 
-### 2B. Control the Real Robot With the Complete Model
+After practicing VR simulation, continue with the
+[MuJoCo dataset, ACT training, and rollout workflow](mujoco_ik/SIM_DATASET_WORKFLOW.md).
+It uses the same 18-D state/action schema and three camera names as the physical
+robot without connecting to hardware.
+MuJoCo runs independently in `hei-rebot-vr`, while recording, training, and
+policy inference run in `lerobot5`.
+
+### 3B. Control the Real Robot With the Complete Model
 
 Before enabling commands, clear the robot workspace and make the emergency stop
 reachable. Start the robot host and `teleoperate.py` as described in the HEI
@@ -231,7 +286,7 @@ shows fresh feedback and `command bridge ARMED` before pressing grip. Closing
 the viewer or losing either safety stream stops chassis/lift commands; the arms
 hold their latest joint targets.
 
-### 2C. Start the Existing Dual-Arm Real-Robot Pipeline
+### 3C. Start the Existing Dual-Arm Real-Robot Pipeline
 
 Use this **instead of**, not alongside, the complete-model real bridge.
 Only one process may publish actions on `6558`, and only one of
