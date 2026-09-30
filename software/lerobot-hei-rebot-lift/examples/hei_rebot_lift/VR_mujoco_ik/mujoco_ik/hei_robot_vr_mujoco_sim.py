@@ -71,6 +71,7 @@ WHEEL_JOINTS = (
     "rear_right_wheel_joint",
 )
 BASE_FRAME = "base_footprint"
+RECORDING_CAMERAS = ("front",)
 
 DEFAULT_ARM_Q = np.array([0.0, -0.5, -0.5, 0.0, 0.0, 0.0], dtype=float)
 GRIPPER_OPEN_M = 0.05
@@ -161,6 +162,182 @@ class GraspableObjectRuntime:
     tcp_relative_rot: np.ndarray | None = None
 
 
+class VRDatasetRecorder:
+    """Save synchronized MuJoCo state/action/image frames as LeRobot episodes."""
+
+    STATE_NAMES = (
+        *(f"right_joint{i}" for i in range(1, 7)),
+        *(f"left_joint{i}" for i in range(1, 7)),
+        "right_gripper",
+        "left_gripper",
+        "lift",
+        "base_x",
+        "base_y",
+        "base_yaw",
+    )
+
+    def __init__(self, simulator: "HEIRobotVRSimulator") -> None:
+        self.simulator = simulator
+        self.args = simulator.args
+        self.root = Path(self.args.record_root).expanduser().resolve()
+        self.repo_id = self.args.record_repo_id
+        self.task = self.args.record_task
+        self.fps = max(1, int(self.args.record_fps))
+        self.target_episodes = max(0, int(self.args.record_episodes))
+        self.recording = False
+        self.discard_requested = False
+        self.frames: list[tuple[np.ndarray, dict[str, np.ndarray]]] = []
+        self.next_sample_s = 0.0
+        existing_raw = sorted((self.root / "raw_episodes").glob("episode_*.npz"))
+        self.next_raw_index = 0
+        if existing_raw:
+            try:
+                self.next_raw_index = max(int(path.stem.split("_")[-1]) for path in existing_raw) + 1
+            except ValueError:
+                self.next_raw_index = len(existing_raw)
+        self.saved = 0
+        self.dataset = None
+        self.raw_mode = False
+        self.renderer = mujoco.Renderer(simulator.model, height=480, width=640)
+
+    def _load_dataset(self):
+        try:
+            from lerobot.common.datasets.lerobot_dataset import LeRobotDataset
+            from lerobot.common.datasets.utils import hw_to_dataset_features
+        except ImportError:
+            try:
+                from lerobot.datasets import LeRobotDataset
+                from lerobot.datasets.utils import hw_to_dataset_features
+            except ImportError as exc:
+                raise RuntimeError(
+                    "录制需要 LeRobotDataset。请在 hei-rebot-vr 环境安装 lerobot，"
+                    "或把 --record 运行在已安装 lerobot 的训练环境中。"
+                ) from exc
+
+        observation = {name: float for name in self.STATE_NAMES}
+        for camera in RECORDING_CAMERAS:
+            observation[camera] = (480, 640, 3)
+        action = {name: float for name in self.STATE_NAMES}
+        features = {}
+        features.update(hw_to_dataset_features(observation, "observation", use_video=False))
+        features.update(hw_to_dataset_features(action, "action", use_video=False))
+        info_path = self.root / "meta" / "info.json"
+        if info_path.is_file():
+            dataset = LeRobotDataset(self.repo_id, root=self.root)
+            dataset.episode_buffer = dataset.create_episode_buffer()
+            return dataset
+        return LeRobotDataset.create(
+            repo_id=self.repo_id,
+            fps=self.fps,
+            features=features,
+            root=self.root,
+            robot_type="hei_rebot_vr_sim",
+            use_videos=False,
+        )
+
+    def state(self) -> np.ndarray:
+        sim = self.simulator
+        with sim.data_lock:
+            right = sim._get_joint_q(RIGHT_ARM_JOINTS)
+            left = sim._get_joint_q(LEFT_ARM_JOINTS)
+            values = np.concatenate(
+                [
+                    right,
+                    left,
+                    [sim.gripper_target["right"], sim.gripper_target["left"]],
+                    [sim.data.qpos[sim.mj_qpos[LIFT_JOINT]]],
+                    sim.base_pose,
+                ]
+            )
+        return values.astype(np.float32, copy=False)
+
+    def start(self) -> None:
+        self.recording = True
+        self.frames = []
+        self.next_sample_s = time.perf_counter()
+        print("[VR RECORD] 开始录制；Space 停止并保存，Backspace 丢弃，R 复位", flush=True)
+
+    def stop(self, *, save: bool) -> None:
+        if not self.recording:
+            return
+        self.recording = False
+        if save and len(self.frames) >= 2:
+            if self.dataset is None and not self.raw_mode:
+                try:
+                    self.dataset = self._load_dataset()
+                except RuntimeError as exc:
+                    self.raw_mode = True
+                    print(f"[VR RECORD] {exc}", flush=True)
+                    print("[VR RECORD] 将先保存 raw_episodes/*.npz，之后在训练环境转换。", flush=True)
+            if self.raw_mode:
+                raw_dir = self.root / "raw_episodes"
+                raw_dir.mkdir(parents=True, exist_ok=True)
+                states = np.stack([frame[0] for frame in self.frames[:-1]])
+                actions = np.stack([frame[0] for frame in self.frames[1:]])
+                images = {
+                    f"images_{camera}": np.stack([frame[1][camera] for frame in self.frames[:-1]])
+                    for camera in RECORDING_CAMERAS
+                }
+                np.savez_compressed(
+                    raw_dir / f"episode_{self.next_raw_index:06d}.npz",
+                    states=states,
+                    actions=actions,
+                    **images,
+                    task=np.asarray(self.task),
+                    fps=np.asarray(self.fps),
+                )
+                self.next_raw_index += 1
+            else:
+                for (state, images), (next_state, _) in zip(self.frames, self.frames[1:], strict=False):
+                    self.dataset.add_frame(
+                        {
+                            "observation.state": state,
+                            **{
+                                f"observation.images.{camera}": images[camera]
+                                for camera in RECORDING_CAMERAS
+                            },
+                            "action": next_state,
+                        },
+                        task=self.task,
+                    )
+                self.dataset.save_episode()
+            self.saved += 1
+            print(
+                f"[VR RECORD] episode {self.saved}/{self.target_episodes or '∞'} 已保存: {self.root}",
+                flush=True,
+            )
+        else:
+            print("[VR RECORD] 当前 episode 已丢弃（帧数不足或手动丢弃）", flush=True)
+        self.frames = []
+        if save:
+            self.simulator.reset_for_recording()
+
+    def handle_key(self, keycode: int) -> bool:
+        if keycode == 32:  # Space
+            if self.recording:
+                self.stop(save=True)
+            else:
+                self.start()
+            return True
+        if keycode in (8, 127):  # Backspace/Delete
+            self.stop(save=False)
+            return True
+        return False
+
+    def sample(self, now_s: float) -> None:
+        if not self.recording or now_s < self.next_sample_s:
+            return
+        images = {}
+        for camera in RECORDING_CAMERAS:
+            self.renderer.update_scene(self.simulator.data, camera=camera)
+            images[camera] = self.renderer.render().copy()
+        self.frames.append((self.state(), images))
+        self.next_sample_s = now_s + 1.0 / self.fps
+        if self.target_episodes and self.saved >= self.target_episodes:
+            self.stop(save=False)
+            print("[VR RECORD] 已达到目标 episode 数，按 Esc 退出仿真。", flush=True)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Control the complete HEI robot MuJoCo simulation using Telegrip VR data."
@@ -173,6 +350,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--plain-scene", action="store_true", help="Disable floor, lights, markings, and axes.")
     parser.add_argument("--headless-check", action="store_true", help="Build models and run checks without a viewer.")
     parser.add_argument("--verbose", action="store_true", help="Print additional VR and IK diagnostics.")
+    parser.add_argument("--record", action="store_true", help="Enable VR demonstration recording.")
+    parser.add_argument("--record-root", type=Path, default=BASE_DIR / "data" / "vr_sim", help="Dataset root.")
+    parser.add_argument("--record-repo-id", default="local/hei_rebot_vr_sim", help="LeRobot repo id.")
+    parser.add_argument("--record-task", default="Control the HEI ReBot in MuJoCo with VR.")
+    parser.add_argument("--record-episodes", type=int, default=10, help="Stop recording after this many saved episodes.")
+    parser.add_argument("--record-fps", type=int, default=20, help="Recorded frame rate.")
     return parser.parse_args()
 
 
@@ -222,6 +405,7 @@ class HEIRobotVRSimulator:
         self.previous_gripper_closed = {"right": True, "left": True}
         self._initialize_graspable_objects()
         self.last_status_s = 0.0
+        self.recorder = VRDatasetRecorder(self) if bool(getattr(args, "record", False)) else None
 
         self._reset_full_pose()
         self.arms = self._build_arm_solvers()
@@ -301,6 +485,19 @@ class HEIRobotVRSimulator:
             self._reset_scene_objects()
             self.data.qpos[self.mj_qpos[LIFT_JOINT]] = 0.0
             mujoco.mj_forward(self.model, self.data)
+
+    def reset_for_recording(self) -> None:
+        """Reset simulation and VR arm state between saved demonstrations."""
+        self._reset_full_pose()
+        for arm in self.arms.values():
+            arm.target_tf = arm.solver.fk(DEFAULT_ARM_Q)
+            arm.last_solved_target_tf = None
+            arm.last_accepted_target_tf = None
+            arm.last_accepted_ik_q = None
+            arm.settle_steps_remaining = 0
+            arm.reset_requested = False
+            self._release_controller_origin(arm)
+        print("[VR RECORD] episode 已保存，仿真环境已自动复位", flush=True)
 
     def _reset_scene_objects(self) -> None:
         for runtime in self.graspable_objects.values():
@@ -1066,6 +1263,8 @@ class HEIRobotVRSimulator:
         )
 
     def _keyboard_callback(self, keycode: int) -> None:
+        if self.recorder is not None and self.recorder.handle_key(keycode):
+            return
         key = chr(keycode).upper() if 0 <= keycode < 256 else ""
         if key == "F" and self.viewer is not None:
             self.show_frames = not self.show_frames
@@ -1074,6 +1273,8 @@ class HEIRobotVRSimulator:
             )
             print(f"[HEI VR Sim] body frames {'shown' if self.show_frames else 'hidden'}", flush=True)
         elif key == "R":
+            if self.recorder is not None:
+                self.recorder.stop(save=False)
             self._reset_full_pose()
             for arm in self.arms.values():
                 arm.target_tf = arm.solver.fk(DEFAULT_ARM_Q)
@@ -1090,6 +1291,13 @@ class HEIRobotVRSimulator:
             "hold grip to move an arm; trigger opens, release trigger closes/grabs; F frames; R reset",
             flush=True,
         )
+        if self.recorder is not None:
+            print(
+                f"[VR RECORD] ready: Space start/stop, Backspace discard, "
+                f"target={self.recorder.target_episodes}, fps={self.recorder.fps}, "
+                f"root={self.recorder.root}",
+                flush=True,
+            )
         self.viewer = mujoco.viewer.launch_passive(
             self.model,
             self.data,
@@ -1106,11 +1314,15 @@ class HEIRobotVRSimulator:
                 dt = min(max(now_s - previous_s, 0.0), 0.05)
                 previous_s = now_s
                 fresh, packet_count = self._step_control(dt)
+                if self.recorder is not None:
+                    self.recorder.sample(now_s)
                 self.viewer.sync()
                 self._print_status(fresh, packet_count)
         except KeyboardInterrupt:
             pass
         finally:
+            if self.recorder is not None:
+                self.recorder.stop(save=False)
             self.close()
 
     def headless_check(self) -> None:

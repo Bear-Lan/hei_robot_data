@@ -53,6 +53,14 @@ def parse_args():
     parser.add_argument("--push-to-hub", dest="push_to_hub", action="store_true", default=False)
     parser.add_argument("--no-push-to-hub", dest="push_to_hub", action="store_false")
     parser.add_argument("--private", action="store_true", help="Push dataset as private.")
+    parser.add_argument("--no-rerun", action="store_true", help="Disable Rerun visualization.")
+    parser.add_argument(
+        "--rerun-ip",
+        type=str,
+        default=None,
+        help="Connect to an existing Rerun Viewer instead of spawning one locally.",
+    )
+    parser.add_argument("--rerun-port", type=int, default=9876, help="Existing Rerun Viewer's gRPC port.")
     return parser.parse_args()
 
 
@@ -185,7 +193,12 @@ def main():
     print_status("Robot connected")
 
     listener, events = init_keyboard_listener()
-    init_rerun(session_name="hei_rebot_lift_record")
+    if not args.no_rerun:
+        init_rerun(
+            session_name="hei_rebot_lift_record",
+            ip=args.rerun_ip,
+            port=args.rerun_port if args.rerun_ip else None,
+        )
 
     try:
         if not robot.is_connected:
@@ -212,7 +225,7 @@ def main():
                 vr_receiver=vr_receiver,
                 control_time_s=args.episode_time_sec,
                 single_task=args.task_description,
-                display_data=True,
+                display_data=not args.no_rerun,
                 teleop_action_processor=teleop_action_processor,
                 robot_action_processor=robot_action_processor,
                 robot_observation_processor=robot_observation_processor,
@@ -233,7 +246,7 @@ def main():
                     vr_receiver=vr_receiver,
                     control_time_s=args.reset_time_sec,
                     single_task=args.task_description,
-                    display_data=True,
+                    display_data=not args.no_rerun,
                     teleop_action_processor=teleop_action_processor,
                     robot_action_processor=robot_action_processor,
                     robot_observation_processor=robot_observation_processor,

@@ -179,6 +179,17 @@ def _add_lights(spec: mujoco.MjSpec) -> None:
     )
 
 
+def _add_recording_camera(spec: mujoco.MjSpec) -> None:
+    """Add the existing front camera used by the simulation recorder."""
+    forward_xyaxes = [0.0, -1.0, 0.0, 0.0, 0.0, 1.0]
+    spec.body("lift_carriage_link").add_camera(
+        name="front",
+        pos=[0.20, 0.0, 0.10],
+        xyaxes=forward_xyaxes,
+        fovy=65.0,
+    )
+
+
 def _add_floor_markings(spec: mujoco.MjSpec) -> None:
     safety_color = [0.95, 0.62, 0.08, 0.90]
     start_color = [0.05, 0.72, 0.70, 0.95]
@@ -348,6 +359,7 @@ def build_mujoco_model(urdf_path: str | Path, *, add_environment: bool = True) -
     spec = mujoco.MjSpec.from_file(str(urdf_path))
     _add_floor_and_sky(spec)
     _add_lights(spec)
+    _add_recording_camera(spec)
     _add_floor_markings(spec)
     _add_world_axes(spec)
     _add_table(spec)

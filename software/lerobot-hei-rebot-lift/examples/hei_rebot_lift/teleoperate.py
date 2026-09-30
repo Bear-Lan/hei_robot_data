@@ -19,6 +19,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--remote-ip", type=str, default=REMOTE_IP, help="HEI ReBot Lift host IP address.")
     parser.add_argument("--robot-id", type=str, default=ROBOT_ID, help="Robot identifier.")
     parser.add_argument("--fps", type=int, default=FPS, help="Teleoperation control frequency.")
+    parser.add_argument(
+        "--no-rerun",
+        action="store_true",
+        help="Disable the Rerun viewer and logging (useful on WSL systems without a compatible GPU).",
+    )
+    parser.add_argument(
+        "--rerun-ip",
+        type=str,
+        default=None,
+        help="Connect to an existing Rerun Viewer instead of spawning one locally.",
+    )
+    parser.add_argument("--rerun-port", type=int, default=9876, help="Existing Rerun Viewer's gRPC port.")
     return parser.parse_args()
 
 
@@ -31,7 +43,12 @@ def main():
 
     print(f"[HEI Teleoperate] Connecting to robot host={args.remote_ip}, robot_id={args.robot_id}")
     robot.connect()
-    init_rerun(session_name="hei_rebot_lift_teleop")
+    if not args.no_rerun:
+        init_rerun(
+            session_name="hei_rebot_lift_teleop",
+            ip=args.rerun_ip,
+            port=args.rerun_port if args.rerun_ip else None,
+        )
 
     try:
         if not robot.is_connected:
@@ -50,7 +67,8 @@ def main():
 
             if action:
                 action_sent = robot.send_action(action)
-                log_rerun_data(observation=observation, action=action_sent)
+                if not args.no_rerun:
+                    log_rerun_data(observation=observation, action=action_sent)
 
             precise_sleep(max(1.0 / args.fps - (time.perf_counter() - t0), 0.0))
     finally:

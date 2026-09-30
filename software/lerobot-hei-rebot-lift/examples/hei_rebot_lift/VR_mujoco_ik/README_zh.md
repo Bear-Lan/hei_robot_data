@@ -78,6 +78,10 @@ https://电脑IP:8443
 
 ### 2A. 先用完整模型测试 VR 仿真
 
+需要把 VR 操作保存为 ACT 训练数据时，请阅读
+[VR MuJoCo 仿真数据采集流程](SIM_DATA_COLLECTION_README_zh.md)。采集器直接运行在纯仿真
+循环内；不要使用实机 `record.py` 录制这类数据。
+
 <p align="center">
   <img src="../../../../../media/robot-mujoco.png" alt="HEI ReBot Lift MuJoCo VR 仿真场景" width="85%">
 </p>

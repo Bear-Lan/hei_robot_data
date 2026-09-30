@@ -11,7 +11,7 @@ if [[ -z "${CONDA_PREFIX:-}" || "$(basename "$CONDA_PREFIX")" != "$ENV_NAME" ]];
   else
     CONDA_BASE="$(conda info --base)"
   fi
-  # conda activate 在非交互 bash 中需要先加载 conda.sh。
+  # conda activate needs conda.sh in a non-interactive shell.
   source "$CONDA_BASE/etc/profile.d/conda.sh"
   conda activate "$ENV_NAME"
 fi
