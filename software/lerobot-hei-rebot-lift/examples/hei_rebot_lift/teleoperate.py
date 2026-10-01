@@ -31,7 +31,23 @@ def parse_args() -> argparse.Namespace:
         help="Connect to an existing Rerun Viewer instead of spawning one locally.",
     )
     parser.add_argument("--rerun-port", type=int, default=9876, help="Existing Rerun Viewer's gRPC port.")
+    parser.add_argument(
+        "--swap-wrist-cameras",
+        action="store_true",
+        help="Swap left_wrist/right_wrist observation images before Rerun display.",
+    )
     return parser.parse_args()
+
+
+def maybe_swap_wrist_cameras(observation, enabled: bool):
+    if not enabled or "left_wrist" not in observation or "right_wrist" not in observation:
+        return observation
+    corrected = dict(observation)
+    corrected["left_wrist"], corrected["right_wrist"] = (
+        observation["right_wrist"],
+        observation["left_wrist"],
+    )
+    return corrected
 
 
 def main():
@@ -54,7 +70,7 @@ def main():
         if not robot.is_connected:
             raise ValueError("Robot is not connected!")
 
-        observation = robot.get_observation()
+        observation = maybe_swap_wrist_cameras(robot.get_observation(), args.swap_wrist_cameras)
         vr_receiver.set_height_from_observation(observation)
 
         print(f"Starting HEI ReBot Lift VR teleop loop at {args.fps} fps")
@@ -62,7 +78,7 @@ def main():
         while True:
             t0 = time.perf_counter()
 
-            observation = robot.get_observation()
+            observation = maybe_swap_wrist_cameras(robot.get_observation(), args.swap_wrist_cameras)
             action = vr_receiver.get_action(observation)
 
             if action:

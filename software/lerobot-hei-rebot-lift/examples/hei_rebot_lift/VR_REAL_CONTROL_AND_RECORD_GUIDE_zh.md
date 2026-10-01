@@ -213,20 +213,20 @@ observation.images.right_wrist
 Rerun 默认实时显示数据，但只保存在 Viewer 内存中。需要保存可回看的 Rerun 记录时，在 Windows PowerShell 启动 Viewer 时增加 `--save`：
 
 ```powershell
-New-Item -ItemType Directory -Force E:\code_product\ACT\outputs\rerun | Out-Null
+New-Item -ItemType Directory -Force E:\code_product\act_hei_robot\outputs\rerun | Out-Null
 
 E:\DevSoft\anaconda\envs\lerobot-mujoco\Scripts\rerun.exe `
   --bind 0.0.0.0 `
   --port 9876 `
   --memory-limit 4GB `
-  --save E:\code_product\ACT\outputs\rerun\hei_teleop_test.rrd
+  --save E:\code_product\act_hei_robot\outputs\rerun\hei_teleop_test.rrd
 ```
 
 回放保存的 `.rrd` 文件：
 
 ```powershell
 E:\DevSoft\anaconda\envs\lerobot-mujoco\Scripts\rerun.exe `
-  E:\code_product\ACT\outputs\rerun\hei_teleop_test.rrd
+  E:\code_product\act_hei_robot\outputs\rerun\hei_teleop_test.rrd
 ```
 
 `.rrd` 适合检查相机、动作和状态时间线，不能直接替代 ACT 训练所需的 LeRobotDataset。训练数据必须由 `record.py` 保存。
@@ -254,7 +254,7 @@ pkill -f 'examples/hei_rebot_lift/teleoperate.py'
 pgrep -af 'teleoperate.py'
 ```
 
-然后启动录制。下面示例录制 5 条，每条最多 120 秒，条目间预留 30 秒复位：
+然后启动录制。下面示例录制 5 条，每条最多 120 秒，保存后等待手动复位和空格开始：
 
 ```bash
 source /mnt/e/DevSoft/miniconda3-wsl/etc/profile.d/conda.sh
@@ -265,22 +265,49 @@ export PYTHONPATH="$PWD/src"
 
 python -u examples/hei_rebot_lift/record.py \
   --remote-ip 10.163.141.128 \
-  --root /mnt/e/code_product/ACT/outputs/data/hei_vr_real \
+  --root /mnt/e/code_product/act_hei_robot/outputs/data/hei_vr_real \
   --repo-id local/hei_vr_real \
   --num-episodes 5 \
   --episode-time-sec 120 \
-  --reset-time-sec 30 \
   --task-description "用双臂完成指定抓取任务" \
+  --swap-wrist-cameras \
   --rerun-ip 127.0.0.1 \
   --rerun-port 9876 \
   --no-push-to-hub
 ```
 
+### 三个任务的简化采集模式（无新增硬件）
+
+`record.py` 现在提供三个任务辅助档案。档案不会自动猜测物体位置，而是利用现有 VR 控制器完成以下安全约束：
+
+- 叠方块、扶瓶子：默认只让右臂跟随 VR，左臂保持当前姿态；底盘和升降锁定。
+- 抓棍子：允许双臂跟随 VR，底盘和升降仍锁定，避免操作员误碰移动底盘。
+- 每个任务显示 4 个语义阶段；完成一个阶段后按 `N` 进入下一个阶段。`Space`、`R`、`Esc` 含义不变。
+
+叠方块：
+
+```bash
+python -u examples/hei_rebot_lift/record.py \
+  --task stack_blocks_two \
+  --remote-ip 10.163.141.128 \
+  --root /mnt/e/code_product/act_hei_robot/outputs/data/stack_blocks_two \
+  --repo-id local/stack_blocks_two \
+  --num-episodes 5 --episode-time-sec 90 --no-push-to-hub
+```
+
+扶瓶子把 `--task` 换成 `adjust_bottle`，双手抓棍子把它换成 `grab_roller`。如果物体在另一侧，可增加 `--active-arm left`；抓棍子使用 `--active-arm both`（任务默认就是双臂）。如果需要恢复旧的完全连续 VR 行为，使用 `--task custom`。
+
+建议操作顺序：先在 `READY` 状态摆好物体并用 VR 调整机器人初始姿态，按 `Space` 开始；按终端提示完成每一阶段并按 `N`；成功后按 `Space` 保存。发现失败按 `R` 丢弃，重新摆放后再录制。首次真机测试仍需低速、空载并保留急停监护。
+
 录制键盘控制：
 
-- `右方向键`：提前结束当前 episode，并保存已有帧。
-- `左方向键`：丢弃当前 episode，复位后重录。
-- `Esc`：停止全部录制并完成数据集收尾。
+- 等待状态按一次 `Space`：开始当前 episode。
+- 录制状态再按一次 `Space`：提前结束并保存当前 episode。
+- 录制状态按 `N`：进入任务辅助档案的下一阶段。
+- 录制状态按 `R`：丢弃当前 episode，回到等待状态；复位后再按 `Space` 重录。
+- `Esc`：停止全部录制，丢弃尚未完成的当前 episode，并完成数据集收尾。
+
+每条保存后不会自动开始下一条。程序会进入 `READY` 状态，此时可以自由控制机器人和重新摆放物体，但不会写入训练数据；准备好后再按 `Space` 开始下一条。`--episode-time-sec` 仍是单条数据的最长时间，超过后会自动保存。
 
 继续向同一个本地数据集追加时，保持相同 `--root` 和 `--repo-id`，并增加：
 
@@ -290,12 +317,14 @@ python -u examples/hei_rebot_lift/record.py \
 
 录制时如果不需要 Rerun，可以用 `--no-rerun` 代替 `--rerun-ip/--rerun-port`。
 
+如果检查画面确认左右腕相机字段反了，增加 `--swap-wrist-cameras`。该参数会在显示和写入数据集前交换 `left_wrist` 与 `right_wrist`，不影响前置相机和机器人动作。永久修复应在机器人 Jetson 上重新运行相机绑定向导，正确分配 `/dev/hei_left_wrist_camera` 与 `/dev/hei_right_wrist_camera`。
+
 录制期间，Rerun 显示当前过程；LeRobotDataset 同时把每帧动作、状态和三路相机图像写入 `--root`。录制结束后，终端出现 `Dataset finalized at ...` 才表示数据集完成写盘。
 
 检查数据集是否已产生文件：
 
 ```bash
-find /mnt/e/code_product/ACT/outputs/data/hei_vr_real -maxdepth 2 -type f | head -30
+find /mnt/e/code_product/act_hei_robot/outputs/data/hei_vr_real -maxdepth 2 -type f | head -30
 ```
 
 不要只根据 Rerun 窗口判断录制成功，应确认每个 episode 出现 `saved`，并最终出现 `Dataset finalized`。
