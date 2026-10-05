@@ -11,8 +11,20 @@ __pycache__/
 .ruff_cache/
 
 # Runtime outputs and datasets
-outputs/
+outputs/*
+!outputs/data/
+outputs/data/*
+!outputs/data/Adjust_Bottle/
+!outputs/data/Grab_Roller/
+!outputs/data/Stack_Bowls_Two/
 data/
+!outputs/data/
+!outputs/data/Adjust_Bottle/data/
+!outputs/data/Adjust_Bottle/data/**
+!outputs/data/Grab_Roller/data/
+!outputs/data/Grab_Roller/data/**
+!outputs/data/Stack_Bowls_Two/data/
+!outputs/data/Stack_Bowls_Two/data/**
 datasets/
 tmp/
 *.log
