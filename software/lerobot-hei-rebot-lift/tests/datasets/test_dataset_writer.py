@@ -204,6 +204,30 @@ def test_clear_resets_buffer(tmp_path):
     assert dataset.writer.episode_buffer["size"] == 0
 
 
+def test_clear_deletes_temporary_video_frames(tmp_path):
+    """Discarding a video episode removes its temporary PNG frames."""
+    video_key = "observation.images.front"
+    features = {
+        "state": {"dtype": "float32", "shape": (2,), "names": None},
+        video_key: {
+            "dtype": "video",
+            "shape": (64, 64, 3),
+            "names": ["height", "width", "channels"],
+        },
+    }
+    dataset = LeRobotDataset.create(
+        repo_id=DUMMY_REPO_ID, fps=DEFAULT_FPS, features=features, root=tmp_path / "video_ds"
+    )
+
+    dataset.add_frame(_make_frame(features))
+    temp_dir = dataset.writer._get_image_file_dir(0, video_key)
+    assert any(temp_dir.glob("frame-*.png"))
+
+    dataset.clear_episode_buffer()
+
+    assert not temp_dir.exists()
+
+
 def test_finalize_is_idempotent(tmp_path):
     """Calling finalize() twice does not raise."""
     dataset = LeRobotDataset.create(

@@ -276,34 +276,10 @@ python -u examples/hei_rebot_lift/record.py \
   --no-push-to-hub
 ```
 
-### 三个任务的简化采集模式（无新增硬件）
-
-`record.py` 现在提供三个任务辅助档案。档案不会自动猜测物体位置，而是利用现有 VR 控制器完成以下安全约束：
-
-- 叠方块、扶瓶子：默认只让右臂跟随 VR，左臂保持当前姿态；底盘和升降锁定。
-- 抓棍子：允许双臂跟随 VR，底盘和升降仍锁定，避免操作员误碰移动底盘。
-- 每个任务显示 4 个语义阶段；完成一个阶段后按 `N` 进入下一个阶段。`Space`、`R`、`Esc` 含义不变。
-
-叠方块：
-
-```bash
-python -u examples/hei_rebot_lift/record.py \
-  --task stack_blocks_two \
-  --remote-ip 10.163.141.128 \
-  --root /mnt/e/code_product/act_hei_robot/outputs/data/stack_blocks_two \
-  --repo-id local/stack_blocks_two \
-  --num-episodes 5 --episode-time-sec 90 --no-push-to-hub
-```
-
-扶瓶子把 `--task` 换成 `adjust_bottle`，双手抓棍子把它换成 `grab_roller`。如果物体在另一侧，可增加 `--active-arm left`；抓棍子使用 `--active-arm both`（任务默认就是双臂）。如果需要恢复旧的完全连续 VR 行为，使用 `--task custom`。
-
-建议操作顺序：先在 `READY` 状态摆好物体并用 VR 调整机器人初始姿态，按 `Space` 开始；按终端提示完成每一阶段并按 `N`；成功后按 `Space` 保存。发现失败按 `R` 丢弃，重新摆放后再录制。首次真机测试仍需低速、空载并保留急停监护。
-
 录制键盘控制：
 
 - 等待状态按一次 `Space`：开始当前 episode。
 - 录制状态再按一次 `Space`：提前结束并保存当前 episode。
-- 录制状态按 `N`：进入任务辅助档案的下一阶段。
 - 录制状态按 `R`：丢弃当前 episode，回到等待状态；复位后再按 `Space` 重录。
 - `Esc`：停止全部录制，丢弃尚未完成的当前 episode，并完成数据集收尾。
 

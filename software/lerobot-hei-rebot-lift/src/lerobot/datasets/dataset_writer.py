@@ -337,7 +337,10 @@ class DatasetWriter:
                 self._episodes_since_last_encoding = 0
 
         if episode_data is None:
-            self.clear_episode_buffer(delete_images=len(self._meta.image_keys) > 0)
+            # Video cameras are encoded from the same temporary PNG directories
+            # as image cameras. Keep cleanup enabled for either camera type so
+            # discarded or completed episodes cannot leave frames for reuse.
+            self.clear_episode_buffer(delete_images=len(self._meta.camera_keys) > 0)
 
     def _batch_save_episode_video(self, start_episode: int, end_episode: int | None = None) -> None:
         """Batch save videos for multiple episodes."""
@@ -542,7 +545,8 @@ class DatasetWriter:
             # save_episode() mutates the buffer. Handle both types here.
             if isinstance(episode_index, np.ndarray):
                 episode_index = episode_index.item() if episode_index.size == 1 else episode_index[0]
-            for cam_key in self._meta.image_keys:
+            # Both image and video features write temporary frames under images/.
+            for cam_key in self._meta.camera_keys:
                 img_dir = self._get_image_file_dir(episode_index, cam_key)
                 if img_dir.is_dir():
                     shutil.rmtree(img_dir)
